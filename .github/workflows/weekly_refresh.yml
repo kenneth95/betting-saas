@@ -1,0 +1,26 @@
+name: Weekly refresh
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Monday 06:00 UTC
+  workflow_dispatch: {}   # lets you trigger it manually from the Actions tab too
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install -r betting_model/requirements.txt
+
+      - name: Run weekly refresh
+        working-directory: betting_model
+        env:
+          API_SPORTS_KEY: ${{ secrets.API_SPORTS_KEY }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python scripts/weekly_refresh.py --league epl --season 2025

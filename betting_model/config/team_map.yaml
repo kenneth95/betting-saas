@@ -1,0 +1,40 @@
+# Maps api-sports.io team names -> football-data.co.uk team names, so
+# fixtures pulled from the live API line up with the names your model was
+# trained on. Only list teams whose names actually differ - anything not
+# listed here passes through unchanged.
+#
+# IMPORTANT: the mapping below is a best-effort guess based on typical
+# naming conventions, not verified against a live api-sports.io response -
+# I don't have network access to their API from this environment. Before
+# you trust this in production:
+#   1. Run: python -c "from betting_model.api_sports_client import APISportsClient; ..."
+#      to pull /teams for league 39 and print the actual names api-sports.io
+#      uses.
+#   2. Compare against the HomeTeam/AwayTeam values in your football-data.co.uk
+#      CSVs.
+#   3. Fix any mismatches here. A team that's silently unmapped won't error -
+#      it'll just get treated as a brand-new team with no history, which
+#      quietly produces bad predictions for that team. Worth a one-time
+#      careful check, and worth re-checking whenever a newly promoted team
+#      joins, since that's exactly when this kind of silent mismatch bites.
+
+epl:
+  "Manchester United": "Man United"
+  "Manchester City": "Man City"
+  "Newcastle United": "Newcastle"
+  "Wolverhampton Wanderers": "Wolves"
+  "Brighton and Hove Albion": "Brighton"
+  "Tottenham Hotspur": "Tottenham"
+  "West Ham United": "West Ham"
+  "Nottingham Forest": "Nott'm Forest"
+  "Leeds United": "Leeds"
+  "Luton Town": "Luton"
+  "Ipswich Town": "Ipswich"
+  "AFC Bournemouth": "Bournemouth"
+  "West Bromwich Albion": "West Brom"
+  "Norwich City": "Norwich"
+  "Huddersfield Town": "Huddersfield"
+  "Cardiff City": "Cardiff"
+  "Swansea City": "Swansea"
+  "Stoke City": "Stoke"
+  "Hull City": "Hull"
