@@ -1,20 +1,7 @@
 import Link from "next/link";
+import { BUSINESS, socialUrl } from "@/lib/business";
 import { SITE_NAME } from "@/lib/site";
 
-export function SiteFooter() {
-  return (
-    <footer className="mt-16 border-t border-pitch-700">
-      <div className="mx-auto max-w-2xl px-5 py-8 text-xs leading-relaxed text-sage">
-        <p>
-          <strong className="text-chalk">18+ only.</strong> Gambling can be addictive - never stake more than you
-          can afford to lose. {SITE_NAME} publishes statistical analysis, not guaranteed outcomes, and is not
-          affiliated with any bookmaker.
-        </p>
-        <p className="mt-3 flex gap-4">
-          <Link href="/responsible-gambling" className="underline underline-offset-2">Responsible gambling</Link>
-          <Link href="/track-record" className="underline underline-offset-2">Track record</Link>
-        </p>
-      </div>
-    </footer>
-  );
-}
+const groups = [["Product", [["Picks", "/picks"], ["Track record", "/track-record"], ["How it works", "/how-it-works"], ["Pricing", "/pricing"]]], ["Company", [["About", "/about"], ["Contact", "/contact"], ["FAQ", "/faq"]]], ["Legal", [["Terms of Service", "/terms"], ["Privacy Policy", "/privacy"], ["Refund & Cancellation", "/refunds"], ["Responsible Gambling", "/responsible-gambling"]]]] as const;
+const socials = [["x", "X"], ["instagram", "Instagram"], ["facebook", "Facebook"], ["tiktok", "TikTok"], ["youtube", "YouTube"], ["telegram", "Telegram"], ["whatsappChannel", "WhatsApp channel"]] as const;
+export function SiteFooter() { const year = new Date().getFullYear(); return <footer className="mt-16 border-t border-pitch-700"><div className="mx-auto max-w-6xl px-5 py-10 sm:px-8"><div className="mb-10 flex flex-col gap-5 border-b border-pitch-700 pb-8 sm:flex-row sm:items-end sm:justify-between"><div><Link href="/" className="font-display text-xl text-chalk">{SITE_NAME}</Link><p className="mt-2 max-w-sm text-sm text-sage">Statistical Premier League analysis for Kenyan bettors who want to see the method.</p></div><div className="flex flex-wrap gap-2">{socials.filter(([key]) => BUSINESS.socials[key]).map(([key, label]) => <a key={key} href={socialUrl(key, BUSINESS.socials[key])} target="_blank" rel="noopener noreferrer" aria-label={`${label} (opens in new tab)`} className="flex min-h-11 items-center rounded border border-pitch-700 px-3 text-xs text-sage hover:border-amber hover:text-amber">{label}</a>)}</div></div><div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4"><nav aria-label="Footer" className="contents">{groups.map(([heading, links]) => <div key={heading}><h2 className="font-display text-base text-chalk">{heading}</h2><div className="mt-3 flex flex-col gap-2 text-sm text-sage">{links.map(([label, href]) => <Link key={href} href={href} className="hover:text-chalk">{label}</Link>)}</div></div>)}<div><h2 className="font-display text-base text-chalk">Support</h2><div className="mt-3 flex flex-col gap-2 text-sm text-sage">{BUSINESS.supportEmail && <a href={`mailto:${BUSINESS.supportEmail}`} className="break-all hover:text-chalk">{BUSINESS.supportEmail}</a>}{BUSINESS.whatsapp && <a href={`https://wa.me/${BUSINESS.whatsapp}`} className="hover:text-chalk">WhatsApp chat</a>}{BUSINESS.supportHours && <span>{BUSINESS.supportHours}</span>}</div></div></nav></div><div className="mt-10 border-t border-pitch-700 pt-5 text-xs leading-relaxed text-sage"><p>18+ only. Betting involves risk. Never stake more than you can afford to lose. We publish statistical analysis, not guaranteed outcomes, and are not affiliated with any bookmaker.</p><p className="mt-3">© {year} {BUSINESS.legalName || SITE_NAME}. {BUSINESS.registrationNumber && `Registration ${BUSINESS.registrationNumber}.`} {BUSINESS.address && BUSINESS.address} Payments by M-Pesa · Made in Kenya{BUSINESS.licenceStatement && ` · ${BUSINESS.licenceStatement}`}</p></div></div></footer>; }
