@@ -38,11 +38,30 @@ create table if not exists value_bets (
 alter table fixtures enable row level security;
 alter table value_bets enable row level security;
 
+drop policy if exists "fixtures are publicly readable" on fixtures;
 create policy "fixtures are publicly readable" on fixtures
   for select using (true);
 
-create policy "value_bets are publicly readable" on value_bets
-  for select using (true);
+-- Paid content. Settled bets are public (that's the track record page);
+-- anything not yet settled is only readable by users with an active
+-- subscription. The free-tier preview on the homepage is read
+-- server-side with the service role (see web/lib/data.ts), so it doesn't
+-- depend on this policy. Without this, anyone with the public anon key
+-- could query upcoming picks straight from Supabase's REST API.
+-- (drop-then-create so re-running this file on an existing project
+-- replaces the old "publicly readable" policy.)
+drop policy if exists "value_bets are publicly readable" on value_bets;
+drop policy if exists "settled or subscribed value_bets are readable" on value_bets;
+create policy "settled or subscribed value_bets are readable" on value_bets
+  for select using (
+    won is not null
+    or exists (
+      select 1 from subscriptions s
+      where s.user_id = auth.uid()
+        and s.status = 'active'
+        and s.current_period_end > now()
+    )
+  );
 
 -- No insert/update/delete policies for the anon role - only the service
 -- role key (used by the weekly pipeline, never shipped to the frontend)
@@ -72,9 +91,11 @@ create table if not exists payments (
 alter table subscriptions enable row level security;
 alter table payments enable row level security;
 
+drop policy if exists "users can read their own subscription" on subscriptions;
 create policy "users can read their own subscription" on subscriptions
   for select using (auth.uid() = user_id);
 
+drop policy if exists "users can read their own payments" on payments;
 create policy "users can read their own payments" on payments
   for select using (auth.uid() = user_id);
 

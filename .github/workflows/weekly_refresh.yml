@@ -17,10 +17,17 @@ jobs:
 
       - run: pip install -r betting_model/requirements.txt
 
+      - name: Check a fitted model is committed
+        run: |
+          test -f betting_model/models/epl/latest.json || {
+            echo "::error::betting_model/models/epl/latest.json is missing. Run 'python scripts/fit_and_predict.py --league epl' locally and commit the result - CI predicts from the saved fit, it does not refit."
+            exit 1
+          }
+
       - name: Run weekly refresh
         working-directory: betting_model
         env:
           API_SPORTS_KEY: ${{ secrets.API_SPORTS_KEY }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: python scripts/weekly_refresh.py --league epl --season 2025
+        run: python scripts/weekly_refresh.py --league epl

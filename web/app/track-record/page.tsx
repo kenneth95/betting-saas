@@ -1,7 +1,9 @@
+import type { Metadata } from "next";
 import { getTrackRecord } from "@/lib/trackRecord";
 import { TrackRecordStats } from "@/components/TrackRecordStats";
 import { SettledBetRow } from "@/components/SettledBetRow";
 
+export const metadata: Metadata = { title: "Track record" };
 export const dynamic = "force-dynamic";
 
 export default async function TrackRecordPage() {
@@ -13,7 +15,8 @@ export default async function TrackRecordPage() {
         <h1 className="font-display text-3xl text-chalk">Track record</h1>
         <p className="mt-2 max-w-md text-sm text-sage">
           Every flagged value bet, settled against the actual result - wins and losses both.
-          ROI assumes a flat 1-unit stake per bet.
+          ROI assumes a flat 1-unit stake per bet at the odds shown. Each bookmaker's price on the same
+          match counts as its own bet.
         </p>
       </header>
 

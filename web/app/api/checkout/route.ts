@@ -2,8 +2,9 @@ import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { normalizeKenyanMsisdn } from "@/lib/phone";
+import { WEEKLY_PRICE_KES } from "@/lib/site";
 
-const WEEKLY_PRICE_KES = 150;
 const PAYSTACK_BASE_URL = "https://api.paystack.co";
 
 // NOTE ON THIS INTEGRATION: reconstructed from Paystack's public
@@ -24,15 +25,15 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json().catch(() => null);
-  const phoneNumberInput: string | undefined = body?.phone_number;
-  if (!phoneNumberInput || !/^2547\d{8}$/.test(phoneNumberInput)) {
+  const msisdn = normalizeKenyanMsisdn(String(body?.phone_number ?? ""));
+  if (!msisdn) {
     return NextResponse.json(
-      { error: "Enter your M-Pesa number as 2547XXXXXXXX" },
+      { error: "Enter a valid Safaricom number, e.g. 0712 345 678" },
       { status: 400 }
     );
   }
   // Paystack's Kenya mobile money examples use E.164 with a leading "+".
-  const phoneNumber = `+${phoneNumberInput}`;
+  const phoneNumber = `+${msisdn}`;
 
   const reference = `epl_${randomUUID()}`;
   const service = createServiceClient();

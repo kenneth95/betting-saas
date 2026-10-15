@@ -2,9 +2,10 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
 /**
  * Uses the service role key, which bypasses row-level security entirely.
- * Only ever import this into Route Handlers (app/api/**) - never into a
- * Server Component that might get bundled somewhere a client could reach,
- * and never into anything under "use client".
+ * Server-side only: Route Handlers (app/api/**) and server-only data
+ * modules (lib/data.ts). Never import it into anything under "use client".
+ * Any caller that returns data to a browser is responsible for its own
+ * access checks, since RLS does not apply here.
  */
 export function createServiceClient() {
   return createSupabaseClient(

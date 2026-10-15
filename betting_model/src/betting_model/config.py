@@ -57,3 +57,15 @@ def get_league(code: str, config_path: Optional[Path] = None) -> League:
         available = ", ".join(sorted(leagues))
         raise KeyError(f"No league '{code}' in config/leagues.yaml. Available: {available}")
     return leagues[code]
+
+
+def current_season(today=None) -> int:
+    """
+    api-sports.io labels a football season by the year it STARTS in, so
+    the 2026/27 EPL season is season=2026 for every match in it, including
+    the ones played in 2027. The season rolls over in July (the EPL runs
+    Aug-May), so Jan-Jun belongs to the previous calendar year's season.
+    """
+    import datetime as dt
+    today = today or dt.date.today()
+    return today.year if today.month >= 7 else today.year - 1

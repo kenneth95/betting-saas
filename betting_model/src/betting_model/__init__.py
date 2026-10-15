@@ -1,4 +1,4 @@
-from .config import League, load_leagues, get_league
+from .config import League, load_leagues, get_league, current_season
 from .data_loader import load_league, load_season_csv, available_bookmaker
 from .odds import devig_1x2
 from .poisson_model import DixonColesModel
@@ -10,7 +10,7 @@ from .pipeline import weekly_refresh, compute_value_bets, fetch_upcoming_fixture
 from .results import score_recent_fixtures
 
 __all__ = [
-    "League", "load_leagues", "get_league",
+    "League", "load_leagues", "get_league", "current_season",
     "load_league", "load_season_csv", "available_bookmaker",
     "devig_1x2",
     "DixonColesModel",

@@ -1,8 +1,9 @@
 import crypto from "crypto";
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { SUBSCRIPTION_DAYS } from "@/lib/site";
 
-const SUBSCRIPTION_LENGTH_DAYS = 7;
+const SUBSCRIPTION_LENGTH_DAYS = SUBSCRIPTION_DAYS;
 const PAYSTACK_BASE_URL = "https://api.paystack.co";
 
 /**
@@ -40,6 +41,13 @@ export async function POST(request: Request) {
   }
 
   const payload = JSON.parse(rawBody);
+
+  // Paystack sends many event types to one URL; only charge outcomes matter
+  // here. Acknowledge the rest with a 200 so Paystack stops retrying them.
+  if (typeof payload?.event === "string" && !payload.event.startsWith("charge.")) {
+    return NextResponse.json({ ok: true, note: "Ignored event" });
+  }
+
   const reference: string | undefined = payload?.data?.reference;
 
   if (!reference) {
@@ -55,11 +63,13 @@ export async function POST(request: Request) {
   });
   const verifyData = await verifyResp.json().catch(() => null);
   const status: string | undefined = verifyData?.data?.status;
+  const paidAmount: number | undefined = verifyData?.data?.amount; // smallest unit (cents)
+  const paidCurrency: string | undefined = verifyData?.data?.currency;
 
   const service = createServiceClient();
   const { data: payment } = await service
     .from("payments")
-    .select("user_id, status")
+    .select("user_id, status, amount, currency")
     .eq("api_ref", reference)
     .maybeSingle();
 
@@ -75,9 +85,29 @@ export async function POST(request: Request) {
   }
 
   if (status === "success") {
+    // Never grant access for a payment that doesn't match what we asked
+    // for. Our own `payments` row is the source of truth for the price.
+    const expectedAmount = Math.round(Number(payment.amount) * 100);
+    if (paidAmount !== expectedAmount || paidCurrency !== payment.currency) {
+      console.error("Payment mismatch - not activating", {
+        reference, expectedAmount, paidAmount, expectedCurrency: payment.currency, paidCurrency,
+      });
+      await service.from("payments").update({ status: "failed" }).eq("api_ref", reference);
+      return NextResponse.json({ ok: true, note: "Amount mismatch" });
+    }
+
     await service.from("payments").update({ status: "completed" }).eq("api_ref", reference);
 
-    const periodEnd = new Date();
+    // Renewing early extends from the current expiry instead of
+    // overwriting it, so nobody loses days they already paid for.
+    const { data: existing } = await service
+      .from("subscriptions")
+      .select("current_period_end")
+      .eq("user_id", payment.user_id)
+      .maybeSingle();
+    const now = new Date();
+    const existingEnd = existing?.current_period_end ? new Date(existing.current_period_end) : null;
+    const periodEnd = existingEnd && existingEnd > now ? existingEnd : now;
     periodEnd.setDate(periodEnd.getDate() + SUBSCRIPTION_LENGTH_DAYS);
 
     await service.from("subscriptions").upsert({
