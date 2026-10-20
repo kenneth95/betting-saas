@@ -1,5 +1,9 @@
 import { ContentPage, Section, CTA } from "@/components/ContentPage";
 import { BUSINESS } from "@/lib/business";
+<<<<<<< HEAD
 
 // TODO(owner): set BUSINESS.helpline to a verified Kenyan gambling-support contact before launch.
 export default function ResponsibleGamblingPage() { return <ContentPage eyebrow="18+ ONLY" title="Keep betting in its place" intro="Betting should be entertainment, not a way to solve money problems. A model edge is never a reason to chase a loss."><Section title="Set limits"><p>Decide your time and money limits before you start. Never borrow to bet, and never increase a stake to recover a loss.</p></Section><Section title="Take a break"><p>If you feel anxious, secretive or unable to stop, pause and speak to someone you trust. Remove payment methods and block betting access if that helps.</p></Section>{BUSINESS.helpline && <Section title="Get local help"><p>{BUSINESS.helpline}</p></Section>}<CTA href="/contact">Contact support</CTA></ContentPage> }
+=======
+export default function ResponsibleGamblingPage() { return <ContentPage eyebrow="18+ ONLY" title="Keep betting in its place" intro="Betting should be entertainment, not a way to solve money problems. A model edge is never a reason to chase a loss."><Section title="Set limits"><p>Decide your time and money limits before you start. Never borrow to bet, and never increase a stake to recover a loss.</p></Section><Section title="Take a break"><p>If you feel anxious, secretive or unable to stop, pause and speak to someone you trust. Remove payment methods and block betting access if that helps.</p></Section><Section title="Get local help"><p>{BUSINESS.helpline || "TODO(owner): add a verified Kenyan gambling-support helpline before launch."}</p></Section><CTA href="/contact">Contact support</CTA></ContentPage> }
+>>>>>>> 77b19cc5c52d77a83661efc52622894cf8be2216

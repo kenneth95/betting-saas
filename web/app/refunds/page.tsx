@@ -1,4 +1,8 @@
 import { ContentPage, Section } from "@/components/ContentPage";
+<<<<<<< HEAD
 
 // TODO(owner): confirm the final refund window and payment-provider rules before launch.
 export default function RefundsPage() { return <ContentPage eyebrow="LEGAL" title="Refund & Cancellation" intro="What happens if something goes wrong with a payment."><Section title="Digital access"><p>Because membership unlocks digital content, refund eligibility may depend on whether access has been used and on the payment provider&apos;s rules.</p></Section><Section title="Payment problems"><p>If you were charged but access did not unlock, contact support with the confirmation code and number used. Never share your M-Pesa PIN.</p></Section><Section title="Cancellation"><p>Membership is a one-off payment. It does not renew automatically and simply ends when the paid period runs out.</p></Section></ContentPage> }
+=======
+export default function RefundsPage() { return <ContentPage eyebrow="LEGAL" title="Refund & Cancellation" intro="TODO(owner): confirm the final refund window and payment-provider rules before launch."><Section title="Digital access"><p>Because membership unlocks digital content, refund eligibility may depend on whether access has been used and on the payment provider&apos;s rules.</p></Section><Section title="Payment problems"><p>If you were charged but access did not unlock, contact support with the confirmation code and number used. Never share your M-Pesa PIN.</p></Section><Section title="Cancellation"><p>TODO(owner): state whether memberships renew automatically. This prototype assumes access expires without automatic renewal.</p></Section></ContentPage> }
+>>>>>>> 77b19cc5c52d77a83661efc52622894cf8be2216

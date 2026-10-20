@@ -36,11 +36,22 @@ export const faqs = [
   ["What does value mean?", "Value means the model probability is higher than the probability implied by the bookmaker price after removing the bookmaker margin."],
   ["Is anything guaranteed?", "No. Probabilities describe uncertainty; they do not guarantee a result. Betting involves risk and you can lose money."],
   ["Which bookmakers are compared?", "The page labels the available price source for each row. We are independent and not affiliated with any bookmaker."],
+<<<<<<< HEAD
   ["I was charged but access is not unlocked", "Open your Account page to see whether the payment shows as pending, paid or not completed - pending payments are re-checked automatically. If it still hasn't unlocked, contact support with your M-Pesa confirmation code and the number used."],
+=======
+  ["I was charged but access is not unlocked", "TODO(owner): confirm the exact support escalation and expected resolution process. Contact support with your M-Pesa confirmation code and the number used."],
+>>>>>>> 77b19cc5c52d77a83661efc52622894cf8be2216
 ] as const;
 
 export const pageShell = "mx-auto w-full max-w-6xl px-5 py-10 sm:px-8 sm:py-14";
 
+<<<<<<< HEAD
+=======
+export function JsonLd() {
+  return null;
+}
+
+>>>>>>> 77b19cc5c52d77a83661efc52622894cf8be2216
 export default BUSINESS;
 
 // TODO(owner): fill every empty BUSINESS field above before launch.
