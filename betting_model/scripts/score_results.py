@@ -44,6 +44,8 @@ def main():
     summary = score_recent_fixtures(api_client, supabase_client, league, season, args.lookback_days)
     print(summary)
     print(f"api-sports.io requests remaining today: {api_client.remaining_requests_today()}")
+    if summary["n_errors"]:
+        sys.exit(f"{summary['n_errors']} fixture(s) could not be scored - see log above.")
 
 
 if __name__ == "__main__":

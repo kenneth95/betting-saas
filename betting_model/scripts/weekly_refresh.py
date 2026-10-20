@@ -51,6 +51,10 @@ def main():
     )
     print(summary)
     print(f"api-sports.io requests remaining today: {api_client.remaining_requests_today()}")
+    # Results are pushed even on partial failure, but make the Action fail
+    # loudly so a rate-limited or broken odds feed doesn't go unnoticed.
+    if summary["n_odds_errors"]:
+        sys.exit(f"{summary['n_odds_errors']} fixture(s) failed to fetch odds - see log above.")
 
 
 if __name__ == "__main__":

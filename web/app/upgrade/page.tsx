@@ -30,7 +30,7 @@ export default async function UpgradePage() {
       {isActive && until && (
         <p className="mt-4 rounded border border-pitch-700 bg-pitch-800 px-3 py-2 text-sm text-chalk">
           You&apos;re already a member until {until}. Paying again adds {SUBSCRIPTION_DAYS} days to the end.{" "}
-          <Link href="/" className="text-amber underline underline-offset-2">Back to picks</Link>
+          <Link href="/picks" className="text-amber underline underline-offset-2">Back to picks</Link>
         </p>
       )}
 

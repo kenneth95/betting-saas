@@ -5,6 +5,9 @@
 #   relative to the betting_model/ project root.
 # api_sports_league_id: the league id from api-sports.io, needed once you
 #   wire this into the live weekly pipeline (not used for backtesting).
+# football_data_code: football-data.co.uk's division code (E0 = Premier League,
+#   SP1 = La Liga, ...). Lets scripts/update_data.py download the current
+#   season's results for the scheduled refit. Leave unset to skip auto-updates.
 # bookmaker_prefix: leave unset to auto-detect (prefers B365, then Betfair,
 #   then Pinnacle, then the market average). Set explicitly if a league's
 #   data is inconsistent about which bookmaker columns are populated.
@@ -18,6 +21,7 @@ leagues:
     name: English Premier League
     data_folder: data/raw/epl
     api_sports_league_id: 39
+    football_data_code: E0
     bookmaker_prefix: null
     model_overrides: {}
 

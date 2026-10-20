@@ -1,27 +1,5 @@
-import type { Metadata } from "next";
+import { ContentPage, Section, CTA } from "@/components/ContentPage";
+import { BUSINESS } from "@/lib/business";
 
-export const metadata: Metadata = { title: "Responsible gambling" };
-
-export default function ResponsibleGamblingPage() {
-  return (
-    <main className="mx-auto max-w-2xl px-5 py-12">
-      <h1 className="font-display text-3xl text-chalk">Responsible gambling</h1>
-      <div className="mt-4 space-y-4 text-sm leading-relaxed text-sage">
-        <p>
-          You must be 18 or over to use this site. Our picks are statistical estimates: even a flagged
-          &quot;value&quot; bet loses often, and no model can promise a profit.
-        </p>
-        <p>
-          Only stake money you can afford to lose. Set a budget before you bet and stick to it, never chase
-          losses, and don&apos;t bet to solve money problems.
-        </p>
-        <p>
-          If gambling is affecting your finances, relationships or wellbeing, stop and talk to someone you trust,
-          or contact a local support service. Most Kenyan bookmakers also let you set deposit limits or
-          self-exclude from your account settings.
-        </p>
-        <p>We are an analysis service and are not affiliated with, or paid by, any bookmaker.</p>
-      </div>
-    </main>
-  );
-}
+// TODO(owner): set BUSINESS.helpline to a verified Kenyan gambling-support contact before launch.
+export default function ResponsibleGamblingPage() { return <ContentPage eyebrow="18+ ONLY" title="Keep betting in its place" intro="Betting should be entertainment, not a way to solve money problems. A model edge is never a reason to chase a loss."><Section title="Set limits"><p>Decide your time and money limits before you start. Never borrow to bet, and never increase a stake to recover a loss.</p></Section><Section title="Take a break"><p>If you feel anxious, secretive or unable to stop, pause and speak to someone you trust. Remove payment methods and block betting access if that helps.</p></Section>{BUSINESS.helpline && <Section title="Get local help"><p>{BUSINESS.helpline}</p></Section>}<CTA href="/contact">Contact support</CTA></ContentPage> }

@@ -24,7 +24,7 @@ export type FixtureRow = {
   home_team: string;
   away_team: string;
   kickoff_at: string;
-  status: "scheduled" | "finished";
+  status: "scheduled" | "finished" | "void";
   result: MatchSide | null;
 };
 

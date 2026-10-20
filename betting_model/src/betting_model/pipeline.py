@@ -26,6 +26,13 @@ TARGET_BOOKMAKERS = {
 }
 
 
+# api-sports.io status codes for a match that has not kicked off. Anything
+# else (live, finished, postponed...) must NOT be written by this job: live
+# odds would overwrite the pre-match prices the track record is judged
+# against, and re-writing a finished fixture would flip it back to 'scheduled'.
+NOT_STARTED = {"NS", "TBD"}
+
+
 def fetch_upcoming_fixtures_with_odds(
     api_client: APISportsClient, league: League, season: int, days_ahead: int = 8,
 ) -> list[dict]:
@@ -38,12 +45,18 @@ def fetch_upcoming_fixtures_with_odds(
 
     enriched = []
     for item in fixtures:
+        if item["fixture"]["status"]["short"] not in NOT_STARTED:
+            continue
         fixture_id = item["fixture"]["id"]
-        odds_response = api_client.get_odds(fixture_id)
 
         odds_by_bookmaker: dict[str, tuple[float, float, float]] = {}
-        for odds_item in odds_response:
-            odds_by_bookmaker.update(extract_1x2_odds(odds_item, list(TARGET_BOOKMAKERS.keys())))
+        odds_error = None
+        try:
+            for odds_item in api_client.get_odds(fixture_id):
+                odds_by_bookmaker.update(extract_1x2_odds(odds_item, list(TARGET_BOOKMAKERS.keys())))
+        except Exception as exc:  # one fixture's odds failing shouldn't sink the whole week
+            odds_error = str(exc)
+            print(f"Could not fetch odds for fixture {fixture_id}: {exc}")
 
         enriched.append({
             "fixture_id": fixture_id,
@@ -51,6 +64,7 @@ def fetch_upcoming_fixtures_with_odds(
             "home_team": map_team_name(league.code, item["teams"]["home"]["name"], team_map),
             "away_team": map_team_name(league.code, item["teams"]["away"]["name"], team_map),
             "odds_by_bookmaker": odds_by_bookmaker,
+            "odds_error": odds_error,
         })
     return enriched
 
@@ -72,6 +86,12 @@ def compute_value_bets(fixtures: list[dict], model: DixonColesModel, edge_thresh
             edges = {k: model_probs[k] - implied_probs[k] for k in ("H", "D", "A")}
             best_side = max(edges, key=edges.get)
 
+            # A team the model has never seen (unmapped name, or promoted with
+            # no history in the data) is rated from a generic fallback prior.
+            # That is not evidence of an edge, so such rows are still stored
+            # and shown, but never flagged as value or counted in the record.
+            both_known = pred["home_team_known"] and pred["away_team_known"]
+
             results.append({
                 "fixture_id": fx["fixture_id"],
                 "local_label": local_label,
@@ -86,7 +106,7 @@ def compute_value_bets(fixtures: list[dict], model: DixonColesModel, edge_thresh
                 "odds_home": odds[0], "odds_draw": odds[1], "odds_away": odds[2],
                 "flagged_side": best_side,
                 "edge": edges[best_side],
-                "is_value": edges[best_side] >= edge_threshold,
+                "is_value": bool(both_known and edges[best_side] >= edge_threshold),
                 "home_team_known": pred["home_team_known"],
                 "away_team_known": pred["away_team_known"],
             })
@@ -94,12 +114,14 @@ def compute_value_bets(fixtures: list[dict], model: DixonColesModel, edge_thresh
 
 
 def push_to_supabase(supabase_client, fixtures: list[dict], value_bets: list[dict]) -> None:
+    now_iso = dt.datetime.now(dt.timezone.utc).isoformat()
     fixture_rows = [{
         "id": fx["fixture_id"],
         "home_team": fx["home_team"],
         "away_team": fx["away_team"],
         "kickoff_at": fx["kickoff_at"],
         "status": "scheduled",
+        "updated_at": now_iso,
     } for fx in fixtures]
     supabase_client.upsert("fixtures", fixture_rows, on_conflict="id")
 
@@ -116,6 +138,7 @@ def push_to_supabase(supabase_client, fixtures: list[dict], value_bets: list[dic
         "flagged_side": vb["flagged_side"],
         "edge": vb["edge"],
         "is_value": vb["is_value"],
+        "computed_at": now_iso,
     } for vb in value_bets]
     supabase_client.upsert("value_bets", value_bet_rows, on_conflict="fixture_id,local_label")
 
@@ -132,8 +155,22 @@ def weekly_refresh(
     fixtures = fetch_upcoming_fixtures_with_odds(api_client, league, season, days_ahead)
     value_bets = compute_value_bets(fixtures, model, edge_threshold)
     push_to_supabase(supabase_client, fixtures, value_bets)
+
+    unknown_teams = sorted({
+        team for fx in fixtures for team in (fx["home_team"], fx["away_team"])
+        if not model.is_known_team(team)
+    })
+    if unknown_teams:
+        print(
+            "WARNING: the model has no history for: " + ", ".join(unknown_teams) + ". "
+            "If any of these is an established club, config/team_map.yaml is missing an entry "
+            "for its api-sports.io name. Matches involving them are shown but never flagged as value."
+        )
     return {
         "n_fixtures": len(fixtures),
         "n_value_bets_flagged": sum(1 for vb in value_bets if vb["is_value"]),
         "n_odds_rows_computed": len(value_bets),
+        "n_fixtures_without_odds": sum(1 for fx in fixtures if not fx["odds_by_bookmaker"]),
+        "n_odds_errors": sum(1 for fx in fixtures if fx.get("odds_error")),
+        "unknown_teams": unknown_teams,
     }

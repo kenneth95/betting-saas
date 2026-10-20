@@ -128,6 +128,18 @@ either from this environment. Run `scripts/weekly_refresh.py` yourself
 against a real (or test) Supabase project before trusting it in the
 scheduled Action.
 
+## Keeping the model current
+
+`.github/workflows/refit_model.yml` runs Mondays 04:00 UTC (before the 06:00 weekly
+refresh): `scripts/update_data.py` downloads the current season's results from
+football-data.co.uk (needs `football_data_code` in `config/leagues.yaml`), the model is
+refit, and `models/epl/latest.json` is committed if it changed. The download is validated
+before it replaces any data. Teams the model has never seen (e.g. newly promoted) are
+shown but never flagged as value, and the weekly job logs a warning naming them - if one
+is an established club, add its api-sports.io name to `config/team_map.yaml`.
+
+Tests: `python -m pytest tests/`.
+
 ## Caveats carried over from the single-league version
 
 - The synthetic `epl_test` league exists purely to verify the code runs —

@@ -43,12 +43,22 @@ class FakeSupabase:
         raise ValueError(f"Unexpected table {table}")
 
     def upsert(self, table, rows, on_conflict):
-        for row in rows:
-            if table == "fixtures":
-                self.fixtures_table.setdefault(row["id"], {}).update(row)
-            elif table == "value_bets":
-                key = (row["fixture_id"], row["local_label"])
-                self.value_bets_table.setdefault(key, {}).update(row)
+        # Real Postgres rejects partial rows here (NOT NULL columns), so the
+        # scorer must not rely on upsert to change a few columns.
+        raise AssertionError("scoring must use update(), not a partial upsert")
+
+    def update(self, table, filters, values):
+        assert filters, "update() needs filters"
+        def matches(row):
+            return all(str(row.get(k)) == v.replace("eq.", "") for k, v in filters.items())
+        rows = {
+            "fixtures": list(self.fixtures_table.values()),
+            "value_bets": list(self.value_bets_table.values()),
+        }[table]
+        hit = [r for r in rows if matches(r)]
+        for r in hit:
+            r.update(values)
+        return len(hit)
 
 
 def _league():
@@ -75,7 +85,7 @@ def test_score_recent_fixtures_marks_won_and_lost_correctly():
 
     summary = score_recent_fixtures(api_client, supabase, _league(), season=2025)
 
-    assert summary == {"n_pending": 1, "n_scored": 1}
+    assert summary == {"n_pending": 1, "n_scored": 1, "n_voided": 0, "n_errors": 0}
     assert supabase.fixtures_table[1]["status"] == "finished"
     assert supabase.fixtures_table[1]["result"] == "H"
     assert supabase.value_bets_table[(1, "sportpesa")]["won"] is True
@@ -98,7 +108,7 @@ def test_score_recent_fixtures_leaves_unfinished_matches_alone():
 
     summary = score_recent_fixtures(api_client, supabase, _league(), season=2025)
 
-    assert summary == {"n_pending": 1, "n_scored": 0}
+    assert summary == {"n_pending": 1, "n_scored": 0, "n_voided": 0, "n_errors": 0}
     assert supabase.fixtures_table[2]["status"] == "scheduled"  # untouched
 
 
@@ -108,4 +118,69 @@ def test_score_recent_fixtures_handles_no_pending_fixtures():
 
     summary = score_recent_fixtures(api_client, supabase, _league(), season=2025)
 
-    assert summary == {"n_pending": 0, "n_scored": 0}
+    assert summary == {"n_pending": 0, "n_scored": 0, "n_voided": 0, "n_errors": 0}
+
+
+def test_score_recent_fixtures_voids_cancelled_matches_and_leaves_bets_unsettled():
+    past_kickoff = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)).isoformat()
+    fixtures_table = [{
+        "id": 3, "home_team": "Everton", "away_team": "Fulham",
+        "kickoff_at": past_kickoff, "status": "scheduled", "result": None,
+    }]
+    value_bets_table = [{"fixture_id": 3, "local_label": "sportpesa", "flagged_side": "H", "won": None}]
+    api_client = FakeAPIClient(fixtures_response=[{
+        "fixture": {"id": 3, "status": {"short": "ABD"}},
+        "goals": {"home": 1, "away": 0},
+    }])
+    supabase = FakeSupabase(fixtures_table, value_bets_table)
+
+    summary = score_recent_fixtures(api_client, supabase, _league(), season=2025)
+
+    assert summary["n_voided"] == 1 and summary["n_scored"] == 0
+    assert supabase.fixtures_table[3]["status"] == "void"
+    assert supabase.value_bets_table[(3, "sportpesa")]["won"] is None  # must not count either way
+
+
+def test_score_recent_fixtures_settles_bets_before_marking_fixture_finished():
+    """If the bet update fails, the fixture must stay 'scheduled' so the next run retries it."""
+    past_kickoff = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=1)).isoformat()
+    fixtures_table = [{
+        "id": 4, "home_team": "Arsenal", "away_team": "Spurs",
+        "kickoff_at": past_kickoff, "status": "scheduled", "result": None,
+    }]
+    value_bets_table = [{"fixture_id": 4, "local_label": "sportpesa", "flagged_side": "H"}]
+    api_client = FakeAPIClient(fixtures_response=[{
+        "fixture": {"id": 4, "status": {"short": "FT"}},
+        "goals": {"home": 3, "away": 1},
+    }])
+
+    class FlakySupabase(FakeSupabase):
+        def update(self, table, filters, values):
+            if table == "value_bets":
+                raise RuntimeError("supabase is down")
+            return super().update(table, filters, values)
+
+    supabase = FlakySupabase(fixtures_table, value_bets_table)
+    summary = score_recent_fixtures(api_client, supabase, _league(), season=2025)
+
+    assert summary["n_errors"] == 1 and summary["n_scored"] == 0
+    assert supabase.fixtures_table[4]["status"] == "scheduled"
+
+
+def test_score_recent_fixtures_lookback_reaches_oldest_pending_fixture():
+    old_kickoff = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=25)).isoformat()
+    fixtures_table = [{
+        "id": 5, "home_team": "Leeds", "away_team": "Burnley",
+        "kickoff_at": old_kickoff, "status": "scheduled", "result": None,
+    }]
+    seen = {}
+
+    class SpyAPI(FakeAPIClient):
+        def get_fixtures(self, league_id, season, date_from, date_to):
+            seen["date_from"] = date_from
+            return []
+
+    score_recent_fixtures(SpyAPI([]), FakeSupabase(fixtures_table, []), _league(), season=2025, lookback_days=10)
+
+    expected = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=25)).date().isoformat()
+    assert seen["date_from"] == expected

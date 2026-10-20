@@ -21,6 +21,7 @@ class League:
     data_folder: str                       # relative to project root, e.g. "data/raw/epl"
     api_sports_league_id: Optional[int] = None   # for the live weekly pipeline, not the historical backtest
     bookmaker_prefix: Optional[str] = None       # force a specific bookmaker; None = auto-detect
+    football_data_code: Optional[str] = None     # football-data.co.uk division code, e.g. "E0"; enables scripts/update_data.py
     model_overrides: dict[str, Any] = field(default_factory=dict)  # DixonColesModel kwargs, e.g. {"xi": 0.002}
 
     @property
@@ -45,6 +46,7 @@ def load_leagues(config_path: Optional[Path] = None) -> dict[str, League]:
             data_folder=entry["data_folder"],
             api_sports_league_id=entry.get("api_sports_league_id"),
             bookmaker_prefix=entry.get("bookmaker_prefix"),
+            football_data_code=entry.get("football_data_code"),
             model_overrides=entry.get("model_overrides", {}),
         )
         leagues[league.code] = league

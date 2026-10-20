@@ -1,0 +1,5 @@
+import { ContentPage, Section } from "@/components/ContentPage";
+
+// TODO(owner): add the data-controller identity, retention periods and verified processor details,
+// and have this page reviewed by a privacy adviser (Kenya Data Protection Act) before launch.
+export default function PrivacyPage() { return <ContentPage eyebrow="LEGAL" title="Privacy Policy" intro="What we collect, why, and the choices you have."><Section title="Information we use"><p>We may process account details, payment references, support messages and technical information needed to provide and secure the service.</p></Section><Section title="Why we use it"><p>We use information to provide access, confirm payments, respond to support requests, prevent abuse and meet legal obligations.</p></Section><Section title="Your choices"><p>You can ask what personal information we hold about you, or ask for it to be corrected or deleted, by contacting support using the details on our contact page.</p></Section></ContentPage> }

@@ -34,6 +34,12 @@ is just the map. Rough order of operations for a fresh setup:
 
 ## Status
 
+**Update (this pass):** payments, results scoring and the weekly pipeline were
+hardened and the frontend finished - see "What changed" below. Re-run
+`betting_model/supabase/schema.sql` on any existing Supabase project: it now
+creates tables before policies (fresh installs used to fail) and adds the
+`complete_payment()` function the payment flow depends on.
+
 Remaining before launch (needs your accounts/keys, so not done here):
 real EPL CSVs + first fit, verifying `config/team_map.yaml` against a live
 `/teams` call, one Paystack test-mode payment + webhook, deploy. The
@@ -45,3 +51,17 @@ frontend with auth, subscriptions, M-Pesa payments, and a public track
 record. Not yet done: a live end-to-end test of the payment and webhook
 flow (no network access to Paystack/Supabase from the environment this
 was built in - see the caveats in `web/README.md`), and actual deployment.
+
+## What changed in the latest pass
+
+**Bugs fixed**
+- `schema.sql` failed on a fresh project (a policy referenced `subscriptions` before it existed).
+- Results scoring used a partial upsert on `value_bets`, which Postgres rejects, so the track record could never populate. It now uses PATCH updates, settles bets *before* marking the fixture finished (self-healing on failure), voids cancelled/abandoned matches, and widens its lookback to the oldest unscored fixture.
+- The weekly refresh could overwrite pre-match odds with live odds and reset finished fixtures to "scheduled" if re-run after kickoff. It now only touches not-started fixtures.
+- Payments: access is granted by one atomic database function (`complete_payment`), shared by the webhook and a polling fallback, so a failed write can't leave a paid user locked out and retries can't double-grant. Transient failures return 500 so Paystack retries. Checkout no longer leaks provider errors to the browser and ignores double-taps.
+
+**Added**
+- Model: matches involving teams the model has never seen are shown but never flagged as value; API pagination + rate-limit backoff; per-fixture error isolation; a `refit_model.yml` workflow (Mondays) that downloads new results and commits refreshed ratings.
+- Frontend: `/account` page (membership, days left, payment history), post-payment confirmation, price on the pricing page, rewritten picks browser (correct model-vs-book bars, sort by best edge, mobile bar no longer covers content), profit/units on the track record, full sitemap.
+- `npm run launch-check` lists everything still needed before launch (business details, helpline, legal review).
+- Tests: backend 37 (`pytest`), web `npm test`.

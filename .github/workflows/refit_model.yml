@@ -1,0 +1,51 @@
+name: Refit model
+
+# Keeps the committed ratings current: pulls the latest results from
+# football-data.co.uk, refits, and commits models/epl/latest.json if it
+# changed. The weekly refresh (Monday 06:00 UTC) predicts from whatever is
+# committed, so this runs earlier the same morning.
+on:
+  schedule:
+    - cron: '0 4 * * 1'   # Monday 04:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write         # needed to commit the refit ratings back
+
+concurrency:
+  group: refit-model
+  cancel-in-progress: false
+
+jobs:
+  refit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: betting_model/requirements.txt
+
+      - run: pip install -r betting_model/requirements.txt
+
+      - name: Download latest results
+        working-directory: betting_model
+        run: python scripts/update_data.py --league epl
+
+      - name: Refit
+        working-directory: betting_model
+        run: python scripts/fit_and_predict.py --league epl
+
+      - name: Commit refreshed data and ratings
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add betting_model/data/raw betting_model/models/epl/latest.json
+          if git diff --cached --quiet; then
+            echo "No changes - model already current."
+          else
+            git commit -m "Refit EPL model on latest results"
+            git push
+          fi

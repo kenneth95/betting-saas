@@ -44,7 +44,10 @@ service role key, so the site will show no fixtures without it.
 5. Put the Vercel project's region near your Supabase region to keep the
    fixtures query fast (Project → Settings → Functions).
 
-Local check before pushing: `npm install && npm run typecheck && npm run build`.
+Local check before pushing: `npm install && npm run typecheck && npm test && npm run build`
+(`npm test` needs Node 22+). Before launch also run `npm run launch-check`, which fails
+until `lib/business.ts` has real business/support/helpline details and the `TODO(owner)`
+legal-review markers are resolved.
 
 ## What's real vs. placeholder right now
 
@@ -83,7 +86,7 @@ this in production - see the payments section below.
    check alone is solid, but re-verifying against the source of truth
    costs one API call and closes off an entire class of "what if the
    event body is misleading" bugs.
-6. After the prompt is sent, the upgrade form polls `/api/subscription-status` and redirects to the picks page as soon as the webhook activates the subscription.
+6. After the prompt is sent, the upgrade form polls `/api/subscription-status`. If the webhook is late or misconfigured, that endpoint asks Paystack directly about the user's recent pending payment, so access still unlocks. Both paths go through `lib/payments.ts` (`settlePayment`), which verifies with Paystack, checks the amount against our own `payments` row, and grants access via the atomic `complete_payment()` SQL function - safe to run repeatedly or concurrently. The user then lands on `/picks?upgraded=1`.
 7. `lib/subscription.ts` checks `subscriptions.current_period_end` on
    every homepage load to decide what a signed-in user can see.
 
@@ -94,7 +97,7 @@ not a typo. Get this wrong and you either charge customers 100x too much
 or 100x too little.
 
 **Setup:**
-1. Run the updated `betting_model/supabase/schema.sql` (it now includes
+1. Run the updated `betting_model/supabase/schema.sql` (re-run it on existing projects: it adds the `complete_payment()` function that payments now require) (it now includes
    `subscriptions` and `payments` tables) in your Supabase SQL editor.
 2. In Supabase Auth settings, make sure email OTP/magic link sign-in is
    enabled (it is by default) and set your site URL / redirect URLs to

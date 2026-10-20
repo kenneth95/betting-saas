@@ -25,7 +25,7 @@ export function UpgradeForm() {
         const data = await res.json();
         if (data?.active) {
           clearInterval(timer);
-          router.replace("/?upgraded=1");
+          router.replace("/picks?upgraded=1");
           router.refresh();
           return;
         }
@@ -103,7 +103,7 @@ export function UpgradeForm() {
       {state === "timeout" && (
         <p className="mt-4 text-sm text-sage">
           We haven&apos;t seen your payment yet. If you completed it, it can take a few minutes -{" "}
-          <a href="/" className="text-amber underline underline-offset-2">refresh the picks page</a>. If you
+          <a href="/picks" className="text-amber underline underline-offset-2">refresh the picks page</a> or check your <a href="/account" className="text-amber underline underline-offset-2">account</a>. If you
           didn&apos;t get a prompt, try again.
         </p>
       )}
